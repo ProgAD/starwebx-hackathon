@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Portal - Round 1</title>
+    
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Monaco Editor -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="exam-style.css">
+</head>
+<body class="bg-gray-50">
+    <div id="app">
+        <!-- Tab Warning -->
+        <div id="tabWarning" class="tab-warning" style="display: none;">
+            ⚠️ Don't leave this page!<br>
+            Tab Activity: <span id="tabWarningCount">0</span>
+        </div>
+
+        <!-- Header -->
+        <nav class="gradient-bg shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <h1 class="text-white text-2xl font-bold">Coding Ka BIG BOSS - Round 1</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-white">
+                            Tab Activity: <span class="font-bold" id="tabActivityCount">0</span>
+                        </div>
+                        <div class="timer" id="timer">
+                            Time: 01:00:00
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Instructions Screen -->
+        <div id="instructionsScreen" class="max-w-4xl mx-auto px-4 py-8">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Round 1 - Instructions</h2>
+                
+                <div class="space-y-4 mb-8">
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                        <h3 class="font-bold text-blue-900 mb-2">📝 10 MCQ Questions</h3>
+                        <p class="text-blue-800">Each correct answer = 1 mark. Total: 10 marks</p>
+                    </div>
+                    
+                    <div class="bg-green-50 border-l-4 border-green-500 p-4">
+                        <h3 class="font-bold text-green-900 mb-2">💻 2 Programming Questions</h3>
+                        <p class="text-green-800">Each question = 10 marks. Total: 20 marks</p>
+                    </div>
+                    
+                    <div class="bg-purple-50 border-l-4 border-purple-500 p-4">
+                        <h3 class="font-bold text-purple-900 mb-2">⏰ Total Time: <span id="totalTimeDisplay">60</span> minutes</h3>
+                        <p class="text-purple-800">Timer starts when you click "Start Exam"</p>
+                    </div>
+                    
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4">
+                        <h3 class="font-bold text-red-900 mb-2">⚠️ Important Rules</h3>
+                        <ul class="list-disc list-inside text-red-800 space-y-1">
+                            <li>Stay in fullscreen mode - Don't escape!</li>
+                            <li>Don't switch tabs or windows</li>
+                            <li>Tab activity is tracked and counted</li>
+                            <li>Code is evaluated by AI (not executed)</li>
+                            <li>Results will be announced on Feb 8, 2026</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button id="startExamBtn" class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-lg text-xl font-bold hover:from-purple-700 hover:to-indigo-700 transition">
+                        Start Exam
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exam Screen -->
+        <div id="examScreen" class="flex h-screen" style="display: none;">
+            <!-- Sidebar -->
+            <div class="w-80 bg-white shadow-lg p-6 overflow-y-auto">
+                <!-- Section Tabs -->
+                <div class="flex mb-6 border-b">
+                    <button id="mcqTab" class="flex-1 py-2 px-4 font-bold border-b-2 border-purple-600 text-purple-600">
+                        MCQ
+                    </button>
+                    <button id="programmingTab" class="flex-1 py-2 px-4 font-bold text-gray-600">
+                        Programming
+                    </button>
+                </div>
+
+                <!-- MCQ Navigation -->
+                <div id="mcqNavigation" class="mb-6">
+                    <h3 class="font-bold text-gray-700 mb-3">MCQ Questions</h3>
+                    <div class="question-nav" id="mcqQuestionNav">
+                        <!-- MCQ buttons will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Programming Navigation -->
+                <div id="programmingNavigation" class="mb-6" style="display: none;">
+                    <h3 class="font-bold text-gray-700 mb-3">Programming Questions</h3>
+                    <div class="space-y-2" id="programmingQuestionNav">
+                        <!-- Programming buttons will be inserted here -->
+                    </div>
+                </div>
+
+                <button id="submitExamBtn" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 mt-6">
+                    Submit Exam
+                </button>
+            </div>
+
+            <!-- Main Content -->
+            <div class="flex-1 p-6 overflow-y-auto">
+                <!-- MCQ Section -->
+                <div id="mcqSection">
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold text-gray-800" id="mcqQuestionTitle">Question 1 of 10</h3>
+                            <span class="text-sm text-gray-600" id="mcqMarks">1 mark</span>
+                        </div>
+
+                        <div class="mb-6">
+                            <p class="text-lg text-gray-700 whitespace-pre-wrap" id="mcqQuestionText"></p>
+                        </div>
+
+                        <div class="space-y-3 mb-6" id="mcqOptions">
+                            <!-- Options will be inserted here -->
+                        </div>
+
+                        <div class="flex justify-between">
+                            <button id="previousMCQBtn" class="px-6 py-2 bg-gray-300 rounded-lg disabled:opacity-50">
+                                ← Previous
+                            </button>
+                            <button id="nextMCQBtn" class="px-6 py-2 bg-purple-600 text-white rounded-lg">
+                                Save & Next →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Programming Section -->
+                <div id="programmingSection" style="display: none;">
+                    <div class="bg-white rounded-lg shadow-lg p-6 mb-4">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4" id="problemTitle"></h3>
+                        
+                        <div class="prose max-w-none mb-4">
+                            <h4 class="font-bold">Problem Statement:</h4>
+                            <p class="whitespace-pre-wrap" id="problemDescription"></p>
+                            
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <h4 class="font-bold">Input Format:</h4>
+                                    <p class="text-sm whitespace-pre-wrap" id="problemInputFormat"></p>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold">Output Format:</h4>
+                                    <p class="text-sm whitespace-pre-wrap" id="problemOutputFormat"></p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <h4 class="font-bold">Sample Input:</h4>
+                                    <pre class="bg-gray-100 p-2 rounded text-sm" id="problemSampleInput"></pre>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold">Sample Output:</h4>
+                                    <pre class="bg-gray-100 p-2 rounded text-sm" id="problemSampleOutput"></pre>
+                                </div>
+                            </div>
+                            
+                            <div id="problemConstraintsContainer">
+                                <h4 class="font-bold">Constraints:</h4>
+                                <p class="text-sm whitespace-pre-wrap" id="problemConstraints"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-bold text-lg">Code Editor</h4>
+                            <select id="languageSelect" class="px-4 py-2 border rounded-lg">
+                                <option value="python">Python</option>
+                                <option value="java">Java</option>
+                                <option value="cpp">C++</option>
+                                <option value="javascript">JavaScript</option>
+                            </select>
+                        </div>
+
+                        <div id="monaco-editor"></div>
+
+                        <div class="flex justify-between mt-4">
+                            <button id="runCodeBtn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                ▶ Run Code
+                            </button>
+                            <button id="submitCodeBtn" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                ✓ Submit Code
+                            </button>
+                        </div>
+
+                        <div id="codeResultContainer" style="display: none;" class="mt-4 p-4 rounded-lg">
+                            <h4 class="font-bold mb-2">Result: <span id="codeResultStatus"></span></h4>
+                            <p><strong>Score:</strong> <span id="codeResultScore"></span>/10</p>
+                            <p class="mt-2" id="codeResultFeedback"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="max-w-4xl mx-auto px-4 py-8" style="display: none;">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Exam Submitted Successfully! 🎉</h2>
+                
+                <div class="text-center mb-8">
+                    <p class="text-xl text-gray-600">Results will be announced on <strong>February 8, 2026</strong></p>
+                </div>
+
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-6 mb-6">
+                    <h3 class="font-bold text-blue-900 mb-2">Your Summary:</h3>
+                    <p class="text-blue-800">MCQ Attempted: <span id="mcqAttempted">0</span>/10</p>
+                    <p class="text-blue-800">Programming Submitted: <span id="programmingSubmitted">0</span>/2</p>
+                </div>
+
+                <button id="returnToDashboardBtn" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700">
+                    Return to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="exam-script.js"></script>
+</body>
+</html>

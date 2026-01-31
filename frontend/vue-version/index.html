@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coding Ka Big Boss - Hackathon Platform</title>
+    
+    <!-- Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- Axios for HTTP requests -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        [v-cloak] { display: none; }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stage-card {
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stage-card.locked {
+            opacity: 0.6;
+            border-left-color: #ccc;
+        }
+        
+        .stage-card.completed {
+            border-left-color: #10b981;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app" v-cloak>
+        <!-- Navigation Bar -->
+        <nav class="gradient-bg shadow-lg" v-if="isAuthenticated">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <h1 class="text-white text-2xl font-bold">Coding Ka BIG BOSS</h1>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <a href="#" @click.prevent="currentView = 'dashboard'" 
+                           class="text-white hover:text-gray-200 font-medium"
+                           :class="{'border-b-2 border-white': currentView === 'dashboard'}">
+                            Dashboard
+                        </a>
+                        <a href="#" @click.prevent="currentView = 'rounds'" 
+                           class="text-white hover:text-gray-200 font-medium"
+                           :class="{'border-b-2 border-white': currentView === 'rounds'}">
+                            Rounds
+                        </a>
+                        <a href="#" @click.prevent="currentView = 'results'" 
+                           class="text-white hover:text-gray-200 font-medium"
+                           :class="{'border-b-2 border-white': currentView === 'results'}">
+                            Results
+                        </a>
+                        <a href="#" @click.prevent="loadNotifications" 
+                           class="text-white hover:text-gray-200 font-medium relative">
+                            Notification
+                            <span v-if="notificationCount > 0" class="notification-badge">
+                                {{ notificationCount }}
+                            </span>
+                        </a>
+                        <a href="#" @click.prevent="currentView = 'profile'" 
+                           class="text-white hover:text-gray-200 font-medium">
+                            Profile
+                        </a>
+                        <button @click="logout" 
+                                class="text-white hover:text-gray-200 font-medium">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Login Page -->
+        <div v-if="!isAuthenticated" class="min-h-screen flex items-center justify-center gradient-bg">
+            <div class="card p-8 max-w-md w-full">
+                <div class="text-center mb-8">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-2">Coding Ka BIG BOSS</h1>
+                    <p class="text-gray-600">Premier Corporate-Level Hackathon</p>
+                </div>
+                
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Sign in to continue</h2>
+                    <div id="g_id_onload"
+                         data-client_id="874447606252-5r914ucnenbptu6elo1jkkqcpm4hfmmr.apps.googleusercontent.com"
+                         data-callback="handleGoogleLogin">
+                    </div>
+                    <div class="g_id_signin"
+                         data-type="standard"
+                         data-size="large"
+                         data-theme="outline"
+                         data-text="sign_in_with"
+                         data-shape="rectangular"
+                         data-logo_alignment="left">
+                    </div>
+                </div>
+                
+                <div class="text-center text-sm text-gray-600 mt-6">
+                    <p>By signing in, you agree to participate in the hackathon</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div v-if="isAuthenticated" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Dashboard View -->
+            <div v-if="currentView === 'dashboard'">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Welcome, {{ user.full_name }}!</h2>
+                
+                <!-- Complete Profile Alert -->
+                <div v-if="!isProfileComplete" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                Please complete your profile to participate in the hackathon.
+                                <a href="#" @click.prevent="currentView = 'profile'" class="font-medium underline">
+                                    Complete Profile →
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stage Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Stage 1 -->
+                    <div class="stage-card" :class="stage1Status">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">Round 1: The Small Challenge</h3>
+                            <span class="px-3 py-1 rounded-full text-sm font-semibold"
+                                  :class="{
+                                      'bg-yellow-100 text-yellow-800': stage1Status === 'not_started',
+                                      'bg-blue-100 text-blue-800': stage1Status === 'in_progress',
+                                      'bg-green-100 text-green-800': stage1Status === 'completed'
+                                  }">
+                                {{ stage1Status.replace('_', ' ').toUpperCase() }}
+                            </span>
+                        </div>
+                        <p class="text-gray-600 mb-4">MCQ Questions + Coding Problems</p>
+                        <p class="text-sm text-gray-500 mb-4">Feb 1 - Feb 8, 2026</p>
+                        
+                        <div v-if="dashboard.stage1_result">
+                            <div class="mb-3">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>MCQ Score: {{ dashboard.stage1_result.mcq_score }}/15</span>
+                                </div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Programming Score: {{ dashboard.stage1_result.programming_score }}/20</span>
+                                </div>
+                                <div class="flex justify-between text-sm font-bold">
+                                    <span>Total Score: {{ dashboard.stage1_result.total_score }}/35</span>
+                                </div>
+                            </div>
+                            <div v-if="dashboard.stage1_result.rank" class="text-sm text-gray-600 mb-3">
+                                Your Rank: #{{ dashboard.stage1_result.rank }}
+                            </div>
+                            <div v-if="dashboard.stage1_result.is_qualified" 
+                                 class="bg-green-50 text-green-700 p-3 rounded-lg">
+                                🎉 Congratulations! You've qualified for Round 2!
+                            </div>
+                        </div>
+                        
+                        <button v-if="stage1Status === 'not_started'" 
+                                @click="goToExam"
+                                class="btn-primary w-full mt-4">
+                            Start Round 1
+                        </button>
+                        <button v-if="stage1Status === 'in_progress'" 
+                                @click="goToExam"
+                                class="btn-primary w-full mt-4">
+                            Continue Round 1
+                        </button>
+                    </div>
+
+                    <!-- Stage 2 -->
+                    <div class="stage-card" :class="stage2Status">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800">Round 2: The Game Begins</h3>
+                            <span class="px-3 py-1 rounded-full text-sm font-semibold"
+                                  :class="{
+                                      'bg-gray-100 text-gray-800': stage2Status === 'locked',
+                                      'bg-blue-100 text-blue-800': stage2Status === 'available',
+                                      'bg-green-100 text-green-800': stage2Status === 'submitted'
+                                  }">
+                                {{ stage2Status.toUpperCase() }}
+                            </span>
+                        </div>
+                        <p class="text-gray-600 mb-4">Build a Mini Application</p>
+                        <p class="text-sm text-gray-500 mb-4">Feb 9 - Feb 13, 2026</p>
+                        
+                        <div v-if="stage2Status === 'locked'" class="text-gray-500">
+                            🔒 Complete Round 1 to unlock
+                        </div>
+                        
+                        <button v-if="stage2Status === 'available'" 
+                                @click="currentView = 'submission'"
+                                class="btn-primary w-full mt-4">
+                            Start Project
+                        </button>
+                        <button v-if="stage2Status === 'submitted'" 
+                                @click="currentView = 'submission'"
+                                class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg w-full mt-4">
+                            View Submission
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grand Finale Info -->
+                <div class="card p-6 mt-6 bg-purple-50">
+                    <h3 class="text-2xl font-bold text-purple-900 mb-2">🏆 Grand Finale</h3>
+                    <p class="text-purple-700 mb-2"><strong>Date:</strong> February 15, 2026</p>
+                    <p class="text-purple-700 mb-2"><strong>Location:</strong> Bhagalpur, Bihar</p>
+                    <p class="text-purple-700">Top performers will debug and optimize live corporate projects!</p>
+                </div>
+            </div>
+
+            <!-- Rounds View -->
+            <div v-if="currentView === 'rounds'">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Competition Rounds</h2>
+                
+                <div class="space-y-6">
+                    <!-- Round 1 -->
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold text-gray-800">Round 1: The Small Challenge</h3>
+                            <span class="px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                                Feb 1-8, 2026
+                            </span>
+                        </div>
+                        <p class="text-gray-600 mb-4">Online round featuring MCQ questions and coding problems</p>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-700"><strong>Format:</strong> 10 MCQs + 2 Coding Problems</p>
+                            <p class="text-sm text-gray-700"><strong>Total Marks:</strong> 35 (10 + 20 + 5 bonus)</p>
+                            <p class="text-sm text-gray-700"><strong>Duration:</strong> 60 minutes</p>
+                        </div>
+                        <button v-if="stage1Status !== 'completed'" @click="goToExam" 
+                                class="btn-primary mt-4">
+                            {{ stage1Status === 'not_started' ? 'Start Round 1' : 'Continue Round 1' }}
+                        </button>
+                    </div>
+
+                    <!-- Round 2 -->
+                    <div class="card p-6" :class="{'opacity-60': stage2Status === 'locked'}">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold text-gray-800">Round 2: The Game Begins</h3>
+                            <span class="px-3 py-1 rounded-full text-sm font-semibold bg-purple-100 text-purple-800">
+                                Feb 9-13, 2026
+                            </span>
+                        </div>
+                        <p class="text-gray-600 mb-4">Build a functional mini-application</p>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm text-gray-700"><strong>Task:</strong> Create a specialized tool/app with UI/UX</p>
+                            <p class="text-sm text-gray-700"><strong>Requirements:</strong> GitHub repo, live demo (optional)</p>
+                            <p class="text-sm text-gray-700"><strong>Evaluation:</strong> UI/UX, Functionality, Code Quality</p>
+                        </div>
+                        <button v-if="stage2Status === 'available'" @click="currentView = 'submission'" 
+                                class="btn-primary mt-4">
+                            Start Project
+                        </button>
+                        <div v-if="stage2Status === 'locked'" class="mt-4 text-gray-500">
+                            🔒 Qualify Round 1 to unlock
+                        </div>
+                    </div>
+
+                    <!-- Grand Finale -->
+                    <div class="card p-6 bg-gradient-to-r from-purple-50 to-blue-50">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold text-purple-900">🏆 Grand Finale</h3>
+                            <span class="px-3 py-1 rounded-full text-sm font-semibold bg-purple-200 text-purple-900">
+                                Feb 15, 2026
+                            </span>
+                        </div>
+                        <p class="text-purple-800 mb-4">Offline event at Bhagalpur, Bihar</p>
+                        <div class="bg-white p-4 rounded-lg">
+                            <p class="text-sm text-gray-700"><strong>Task:</strong> Debug & optimize live corporate projects</p>
+                            <p class="text-sm text-gray-700"><strong>Prize:</strong> Internship at Starwebx + Certificates</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results View -->
+            <div v-if="currentView === 'results'">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Results & Leaderboard</h2>
+                
+                <!-- Your Result -->
+                <div v-if="dashboard.stage1_result && dashboard.stage1_result.total_score > 0" class="card p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Your Round 1 Result</h3>
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <p class="text-sm text-gray-600">MCQ Score</p>
+                            <p class="text-2xl font-bold text-blue-600">{{ dashboard.stage1_result.mcq_score }}/15</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg text-center">
+                            <p class="text-sm text-gray-600">Programming</p>
+                            <p class="text-2xl font-bold text-green-600">{{ dashboard.stage1_result.programming_score }}/20</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg text-center">
+                            <p class="text-sm text-gray-600">Total Score</p>
+                            <p class="text-2xl font-bold text-purple-600">{{ dashboard.stage1_result.total_score }}/35</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-lg">
+                            <strong>Your Rank:</strong> 
+                            <span class="text-2xl font-bold text-purple-600">#{{ dashboard.stage1_result.rank || 'TBD' }}</span>
+                        </p>
+                        <div v-if="dashboard.stage1_result.is_qualified" class="mt-4 bg-green-50 text-green-700 p-4 rounded-lg">
+                            🎉 Congratulations! You've qualified for Round 2!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard -->
+                <div class="card p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">🏆 Top Performers</h3>
+                    <button @click="loadLeaderboard" class="mb-4 px-4 py-2 bg-purple-600 text-white rounded-lg">
+                        Load Leaderboard
+                    </button>
+                    
+                    <div v-if="leaderboard.length > 0" class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">Rank</th>
+                                    <th class="px-4 py-3 text-left">Name</th>
+                                    <th class="px-4 py-3 text-left">College</th>
+                                    <th class="px-4 py-3 text-center">MCQ</th>
+                                    <th class="px-4 py-3 text-center">Coding</th>
+                                    <th class="px-4 py-3 text-center">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="entry in leaderboard" :key="entry.rank" 
+                                    class="border-b hover:bg-gray-50"
+                                    :class="{'bg-yellow-50': entry.rank <= 3}">
+                                    <td class="px-4 py-3">
+                                        <span v-if="entry.rank === 1">🥇</span>
+                                        <span v-else-if="entry.rank === 2">🥈</span>
+                                        <span v-else-if="entry.rank === 3">🥉</span>
+                                        <span v-else>#{{ entry.rank }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 font-medium">{{ entry.user_name }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">{{ entry.college || 'N/A' }}</td>
+                                    <td class="px-4 py-3 text-center">{{ entry.mcq_score }}</td>
+                                    <td class="px-4 py-3 text-center">{{ entry.programming_score }}</td>
+                                    <td class="px-4 py-3 text-center font-bold">{{ entry.total_score }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div v-else class="text-center text-gray-500 py-8">
+                        No results available yet. Complete Round 1 to see the leaderboard!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile View -->
+            <div v-if="currentView === 'profile'" class="max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Your Profile</h2>
+                
+                <div class="card p-6">
+                    <div class="flex items-center mb-6">
+                        <img :src="user.profile_picture_url || 'https://via.placeholder.com/100'" 
+                             class="w-24 h-24 rounded-full mr-6">
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800">{{ user.full_name }}</h3>
+                            <p class="text-gray-600">{{ user.email }}</p>
+                        </div>
+                    </div>
+
+                    <form @submit.prevent="updateProfile">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                                <input v-model="profileForm.phone" type="tel" 
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Year of Study</label>
+                                <input v-model.number="profileForm.year_of_study" type="number" 
+                                       min="1" max="5"
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">College Name</label>
+                                <input v-model="profileForm.college_name" type="text" 
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Branch</label>
+                                <input v-model="profileForm.branch" type="text" 
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">GitHub URL</label>
+                                <input v-model="profileForm.github_url" type="url" 
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">LinkedIn URL</label>
+                                <input v-model="profileForm.linkedin_url" type="url" 
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary mt-6">
+                            Update Profile
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Notifications Modal -->
+            <div v-if="showNotifications" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-96 overflow-y-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-2xl font-bold">Notifications</h3>
+                        <button @click="showNotifications = false" class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div v-if="notifications.length === 0" class="text-center text-gray-500 py-8">
+                        No notifications yet
+                    </div>
+                    
+                    <div v-for="notification in notifications" :key="notification.id" 
+                         class="border-b last:border-b-0 py-3"
+                         :class="{'bg-blue-50': !notification.is_read}">
+                        <h4 class="font-semibold text-gray-800">{{ notification.title }}</h4>
+                        <p class="text-gray-600 text-sm">{{ notification.message }}</p>
+                        <p class="text-gray-400 text-xs mt-1">{{ formatDate(notification.created_at) }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
